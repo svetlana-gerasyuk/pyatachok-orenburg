@@ -58,6 +58,7 @@
     const daysBox = booking.querySelector("[data-s-days]"), timesBox = booking.querySelector("[data-s-times]");
     const closed = (booking.dataset.closed || "").split(",").filter(Boolean).map(Number);
     const slots = (booking.dataset.slots || "").split(",").filter(Boolean);
+    const monG = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
     const wd = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"], mon = ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
     const today = new Date(); let made = 0;
     for (let i = 0; made < +booking.dataset.days && i < 21; i++) {
@@ -65,7 +66,7 @@
       if (closed.includes(d.getDay())) continue;
       const label = i === 0 ? "Сегодня" : i === 1 ? "Завтра" : wd[d.getDay()] + ", " + d.getDate() + " " + mon[d.getMonth()];
       const full = (i < 2 ? label.toLowerCase() + ", " : "") + wd[d.getDay()] + " " + d.getDate() + " " + mon[d.getMonth()];
-      daysBox.insertAdjacentHTML("beforeend", `<label class="s-chip"><input type="radio" name="day" value="${made}" data-full="${full}"${made === 0 ? " checked" : ""}><span>${label}</span></label>`);
+      daysBox.insertAdjacentHTML("beforeend", `<label class="s-chip"><input type="radio" name="day" value="${made}" data-full="${full}" data-gen="${(i === 0 ? "сегодня, " : i === 1 ? "завтра, " : "") + d.getDate() + " " + monG[d.getMonth()]}"${made === 0 ? " checked" : ""}><span>${label}</span></label>`);
       made++;
     }
     const drawTimes = () => {
@@ -82,10 +83,12 @@
       if (keep && !timesBox.querySelector("input:checked")) { const f = timesBox.querySelector("input:not([disabled])"); if (f) f.checked = true; }
       if (firstFree) timesBox.insertAdjacentHTML("beforeend", `<p class="s-demo">На сегодня окна закончились – выберите другой день.</p>`);
     };
+    const acc = { "шиномонтаж": "шиномонтаж", "ремонт шин": "ремонт шин", "правка диска": "правку диска", "ошиповка": "ошиповку" };
+    const list = (arr) => arr.length < 2 ? arr.join("") : arr.slice(0, -1).join(", ") + " и " + arr[arr.length - 1];
     const update = () => {
-      const s = booking.querySelector("input[name=svc]:checked"), d = daysBox.querySelector("input:checked"), t = timesBox.querySelector("input:checked");
-      const price = s && s.dataset.price ? " (" + (s.dataset.from ? "от " : "") + rub(+s.dataset.price) + ")" : "";
-      setMessage(booking.dataset.message.replace("{услуга}", s ? s.dataset.name + price : "").replace("{день}", d ? d.dataset.full : "").replace("{время}", t ? t.value : "время уточню"));
+      const picked = [...booking.querySelectorAll("input[name=svc]:checked")].map((x) => { const n = x.dataset.name; return acc[n.toLowerCase()] || n.toLowerCase(); });
+      const d = daysBox.querySelector("input:checked"), t = timesBox.querySelector("input:checked");
+      setMessage(booking.dataset.message.replace("{услуга}", picked.length ? list(picked) : "шиномонтаж").replace("{день}", d ? d.dataset.gen || d.dataset.full : "").replace("{время}", t ? t.value : "время уточню"));
     };
     daysBox.addEventListener("change", () => { drawTimes(); update(); });
     booking.addEventListener("change", update);
